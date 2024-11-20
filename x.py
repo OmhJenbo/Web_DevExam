@@ -44,41 +44,90 @@ def no_cache(view):
         return response
     return no_cache_view
 
+##############################
+USER_NAME_MIN = 2
+USER_NAME_MAX = 20
+USER_NAME_REGEX = f"^.{{{USER_NAME_MIN},{USER_NAME_MAX}}}$"
+def validate_user_name():
+    error = f"name {USER_NAME_MIN} to {USER_NAME_MAX} characters"
+    user_name = request.form.get("user_name", "").strip()
+    if not re.match(USER_NAME_REGEX, user_name): raise_custom_exception(error, 400)
+    return user_name
+
+##############################
+USER_LAST_NAME_MIN = 2
+USER_LAST_NAME_MAX = 20
+USER_LAST_NAME_REGEX = f"^.{{{USER_LAST_NAME_MIN},{USER_LAST_NAME_MAX}}}$"
+def validate_user_last_name():
+    error = f"last name {USER_LAST_NAME_MIN} to {USER_LAST_NAME_MAX} characters"
+    user_last_name = request.form.get("user_last_name", "").strip() # None
+    if not re.match(USER_LAST_NAME_REGEX, user_last_name): raise_custom_exception(error, 400)
+    return user_last_name
+
+##############################
+REGEX_EMAIL = "^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$"
+def validate_user_email():
+    error = "email invalid"
+    user_email = request.form.get("user_email", "").strip()
+    if not re.match(REGEX_EMAIL, user_email): raise_custom_exception(error, 400)
+    return user_email
+
+##############################
+USER_PASSWORD_MIN = 8
+USER_PASSWORD_MAX = 50
+REGEX_USER_PASSWORD = f"^.{{{USER_PASSWORD_MIN},{USER_PASSWORD_MAX}}}$"
+def validate_user_password():
+    error = f"password {USER_PASSWORD_MIN} to {USER_PASSWORD_MAX} characters"
+    user_password = request.form.get("user_password", "").strip()
+    if not re.match(REGEX_USER_PASSWORD, user_password): raise_custom_exception(error, 400)
+    return user_password
+
+##############################
+REGEX_UUID4 = "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+def validate_uuid4(uuid4 = ""):
+    error = f"invalid uuid4"
+    if not uuid4:
+        uuid4 = request.values.get("uuid4", "").strip()
+    if not re.match(REGEX_UUID4, uuid4): raise_custom_exception(error, 400)
+    return uuid4
+
 ################################
-#def send_verify_email(to_email, user_verification_key):
-#    try:
-#        # Create a gmail fullflaskdemomail
-#        # Enable (turn on) 2 step verification/factor in the google account manager
-#        # Visit: https://myaccount.google.com/apppasswords
-#
-#
-#        # Email and password of the sender's Gmail account
-#        sender_email = "sebmp48s@gmail.com"
-#        password = "YOUR_KEY_HERE"  # If 2FA is on, use an App Password instead
-#
-#        # Receiver email address
-#        receiver_email = "fullflaskdemomail@gmail.com"
-#        
-#        # Create the email message
-#        message = MIMEMultipart()
-#        message["From"] = "My company name"
-#        message["To"] = receiver_email
-#        message["Subject"] = "Please verify your account"
-#
-#        # Body of the email
-#        body = f"""To verify your account, please <a href="http://127.0.0.1/verify/{user_verification_key}">click here</a>"""
-#        message.attach(MIMEText(body, "html"))
-#
-#        # Connect to Gmail's SMTP server and send the email
-#        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-#            server.starttls()  # Upgrade the connection to secure
-#            server.login(sender_email, password)
-#            server.sendmail(sender_email, receiver_email, message.as_string())
-#        print("Email sent successfully!")
-#
-#        return "email sent"
-#       
-#    except Exception as ex:
-#        raise_custom_exception("cannot send email", 500)
-#    finally:
-#        pass
+def send_verify_email(to_email, user_verification_key):
+    try:
+        # Create a gmail fullflaskdemomail
+        # Enable (turn on) 2 step verification/factor in the google account manager
+        # Visit: https://myaccount.google.com/apppasswords
+
+
+        # Email and password of the sender's Gmail account
+        sender_email = "fullflaskdemomail@gmail.com"
+        password = "yxxjsgyvkeqayihb"  # If 2FA is on, use an App Password instead
+
+        # Receiver email address
+        receiver_email = "sebmp48s@gmail.com"
+        
+        # Create the email message
+        message = MIMEMultipart()
+        message["From"] = "fulldemo"
+        message["To"] = receiver_email
+        message["Subject"] = "Please verify your account"
+
+        # Body of the email
+        body = f"""To verify your account, please <a href="http://127.0.0.1/verify/{user_verification_key}">click here</a>"""
+        message.attach(MIMEText(body, "html"))
+
+        # Connect to Gmail's SMTP server and send the email
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()  # Upgrade the connection to secure
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, message.as_string())
+        print("Email sent successfully!")
+
+        return "email sent"
+       
+    except Exception as ex:
+        raise_custom_exception("cannot send email", 500)
+    finally:
+        pass
+
+#################################

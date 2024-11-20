@@ -154,7 +154,6 @@ def signup():
         hashed_password = generate_password_hash(user_password)
         
         user_pk = str(uuid.uuid4())
-        user_avatar = ""
         user_created_at = int(time.time())
         user_deleted_at = 0
         user_blocked_at = 0
@@ -163,12 +162,12 @@ def signup():
         user_verification_key = str(uuid.uuid4())
 
         db, cursor = x.db()
-        q = 'INSERT INTO users VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+        q = 'INSERT INTO users VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
         cursor.execute(q, (user_pk, user_name, user_last_name, user_email, 
-                           hashed_password, user_avatar, user_created_at, user_deleted_at, user_blocked_at, 
+                           hashed_password, user_created_at, user_deleted_at, user_blocked_at, 
                            user_updated_at, user_verified_at, user_verification_key))
         
-        # x.send_verify_email(user_email, user_verification_key)
+        x.send_verify_email(user_email, user_verification_key)
         db.commit()
     
         return """<template mix-redirect="/login"></template>""", 201

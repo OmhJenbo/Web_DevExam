@@ -1,0 +1,50 @@
+
+{% include "_top.html" %}
+
+<main class="w-full h-100vh d-flex p-items-center">
+
+    <form id="frm_user_signup" class="w-25% d-flex flex-col gap-4 mx-auto">
+        
+
+        <div class="d-flex flex-col">
+            <label for="user_name">
+                <span>name</span>
+            </label>
+            <input name="user_name" type="text" mix-check="{{ x.USER_NAME_REGEX }}">
+        </div>
+
+
+        <div class="d-flex flex-col">
+            <label for="user_last_name">
+                <span>Last name</span>
+            </label>
+            <input name="user_last_name" type="text" mix-check="{{ x.USER_LAST_NAME_REGEX }}">
+        </div>        
+
+        <div class="d-flex flex-col">
+            <label for="user_email">
+                <span>email</span>
+            </label>
+            <input name="user_email" type="text" mix-check="{{ x.REGEX_EMAIL }}">
+        </div>
+
+
+        <div class="d-flex flex-col">
+            <label for="user_password" class="d-flex">
+                <span>password</span>
+                <span class="ml-auto text-c-gray:+25">{{ x.USER_PASSWORD_MIN }} to {{ x.USER_PASSWORD_MAX }} chars</span>
+            </label>
+            <input name="user_password" type="text" mix-check="{{ x.REGEX_USER_PASSWORD }}">
+        </div>        
+
+        <button mix-post="/users" mix-data="#frm_user_signup">
+            Signup
+        </button>
+
+        <a href="{{url_for('view_login')}}" class="text-a-center">Login</a>
+
+    </form>
+
+</main>
+
+{% include "_bottom.html" %}

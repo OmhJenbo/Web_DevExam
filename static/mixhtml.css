@@ -1,0 +1,15 @@
+.mix-error{
+    background-color: rgba(255,0,0,0.1);
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+.mix-fade-out {
+    animation: fadeOut 2s ease-out forwards; /* Adjust the duration and timing function as needed */
+}

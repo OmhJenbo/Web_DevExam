@@ -35,7 +35,14 @@
                 <span class="ml-auto text-c-gray:+25">{{ x.USER_PASSWORD_MIN }} to {{ x.USER_PASSWORD_MAX }} chars</span>
             </label>
             <input name="user_password" type="text" mix-check="{{ x.REGEX_USER_PASSWORD }}">
-        </div>        
+        </div>
+        
+        <label>
+            <input type="radio" name="user_role" value="customer" required> Customer
+        </label>
+        <label>
+            <input type="radio" name="user_role" value="restaurant" required> Restaurant
+        </label>
 
         <button mix-post="/users" mix-data="#frm_user_signup">
             Signup

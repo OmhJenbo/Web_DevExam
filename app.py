@@ -95,6 +95,17 @@ def view_admin():
     return render_template("view_admin.html")
 
 ##############################
+@app.get("/restaurant")
+@x.no_cache
+def view_restaurant():
+    if not session.get("user", ""): 
+        return redirect(url_for("view_login"))
+    user = session.get("user")
+    if not "restaurant" in user.get("roles", ""):
+        return redirect(url_for("view_login"))
+    return render_template("view_restaurant.html")
+
+##############################
 @app.get("/choose-role")
 @x.no_cache
 def view_choose_role():
@@ -152,6 +163,17 @@ def signup():
         user_email = x.validate_user_email()
         user_password = x.validate_user_password()
         hashed_password = generate_password_hash(user_password)
+        user_role = request.form.get("user_role")
+
+        role_mapping = {
+            "customer": "83a69f25-a755-11ef-a5b9-0242ac120002",
+            "restaurant": "83a6a87e-a755-11ef-a5b9-0242ac120002"
+        }
+
+        if user_role not in role_mapping:
+            raise x.CustomException("Invalid role selected", 400)
+        
+        role_pk = role_mapping[user_role]
         
         user_pk = str(uuid.uuid4())
         user_created_at = int(time.time())
@@ -166,6 +188,12 @@ def signup():
         cursor.execute(q, (user_pk, user_name, user_last_name, user_email, 
                            hashed_password, user_created_at, user_deleted_at, user_blocked_at, 
                            user_updated_at, user_verified_at, user_verification_key))
+        
+        q_users_roles = """
+            INSERT INTO users_roles (user_role_user_fk, user_role_role_fk)
+            VALUES (%s, %s)
+            """
+        cursor.execute(q_users_roles, (user_pk, role_pk))
         
         x.send_verify_email(user_email, user_verification_key)
         db.commit()
@@ -242,6 +270,18 @@ def login():
         if "db" in locals(): db.close()
 
 ##############################
+@app.post("/logout")
+def logout():
+    # ic("#"*30)
+    # ic(session)
+    session.pop("user", None)
+    # session.clear()
+    # session.modified = True
+    # ic("*"*30)
+    # ic(session)
+    return redirect(url_for("view_login"))
+    
+##############################
 ##############################
 ##############################
 
@@ -251,7 +291,7 @@ def _________PUT_________(): pass
 ##############################
 ##############################
 
-@app.put("/verify/<verification_key>")
+@app.get("/verify/<verification_key>")
 @x.no_cache
 def verify_user(verification_key):
     try:

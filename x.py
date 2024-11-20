@@ -92,7 +92,10 @@ def validate_uuid4(uuid4 = ""):
     return uuid4
 
 ################################
-def send_verify_email(to_email, user_verification_key):
+
+
+################################
+def send_verify_email(user_email, user_verification_key):
     try:
         # Create a gmail fullflaskdemomail
         # Enable (turn on) 2 step verification/factor in the google account manager
@@ -100,15 +103,15 @@ def send_verify_email(to_email, user_verification_key):
 
 
         # Email and password of the sender's Gmail account
-        sender_email = "fullflaskdemomail@gmail.com"
+        sender_email = "Examemail@demo.com"
         password = "yxxjsgyvkeqayihb"  # If 2FA is on, use an App Password instead
 
         # Receiver email address
-        receiver_email = "sebmp48s@gmail.com"
+        receiver_email = user_email
         
         # Create the email message
         message = MIMEMultipart()
-        message["From"] = "fulldemo"
+        message["From"] = sender_email
         message["To"] = receiver_email
         message["Subject"] = "Please verify your account"
 

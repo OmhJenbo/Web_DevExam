@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, session, request, make_response
+from flask import Flask, render_template, redirect, url_for, session, request, make_response, flash
 from flask_session import Session
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
@@ -60,6 +60,10 @@ def view_login():
         if "partner" in session.get("user").get("roles"):
             return redirect(url_for("view_partner"))         
     return render_template("view_login.html", x=x, title="Login", message=request.args.get("message", ""))
+
+@app.get("/reset_password")
+def reset_request():
+    return render_template("view_reset_password.html", title="Reset Password", x=x)
 
 ##############################
 @app.get("/customer")
@@ -184,10 +188,16 @@ def signup():
         user_verification_key = str(uuid.uuid4())
 
         db, cursor = x.db()
-        q = 'INSERT INTO users VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
-        cursor.execute(q, (user_pk, user_name, user_last_name, user_email, 
-                           hashed_password, user_created_at, user_deleted_at, user_blocked_at, 
-                           user_updated_at, user_verified_at, user_verification_key))
+        q = '''INSERT INTO users (
+                user_pk, user_name, user_last_name, user_email, user_password, 
+                user_created_at, user_deleted_at, user_blocked_at, user_updated_at, 
+                user_verified_at, user_verification_key
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'''
+        cursor.execute(q, (
+            user_pk, user_name, user_last_name, user_email, hashed_password, 
+            user_created_at, user_deleted_at, user_blocked_at, user_updated_at, 
+            user_verified_at, user_verification_key
+        ))
         
         q_users_roles = """
             INSERT INTO users_roles (user_role_user_fk, user_role_role_fk)
@@ -216,6 +226,7 @@ def signup():
     finally:
         if "cursor" in locals(): cursor.close()
         if "db" in locals(): db.close()
+
 
 ##############################
 @app.post("/login")
@@ -276,6 +287,94 @@ def login():
     finally:
         if "cursor" in locals(): cursor.close()
         if "db" in locals(): db.close()
+##############################
+@app.post("/forgot-password")
+def forgot_password():
+    try:
+        user_email = request.form.get("user_email")
+        if not user_email:
+            raise x.CustomException("Email is required", 400)
+
+        # Fetch user by email
+        db, cursor = x.db()
+        q = "SELECT user_pk FROM users WHERE user_email = %s AND user_deleted_at = 0"
+        cursor.execute(q, (user_email,))
+        user = cursor.fetchone()
+
+        if not user:
+            raise x.CustomException("Email not found", 404)
+
+        # Generate a reset token
+        reset_token = str(uuid.uuid4())
+
+        # Store the reset token in the database
+        q = "UPDATE users SET user_verification_key = %s WHERE user_pk = %s"
+        cursor.execute(q, (reset_token, user["user_pk"]))
+        db.commit()
+
+        # Send the reset email (pass only the reset token)
+        x.send_reset_email(user_email, reset_token)
+
+        return """<template mix-target="#toast" mix-bottom>Reset email sent.</template>""", 200
+
+    except Exception as ex:
+        if "db" in locals(): db.rollback()
+        if isinstance(ex, x.CustomException):
+            toast = render_template("___toast.html", message=ex.message)
+            return f"""<template mix-target="#toast" mix-bottom>{toast}</template>""", ex.code
+        return """<template mix-target="#toast" mix-bottom>System error occurred.</template>""", 500
+
+    finally:
+        if "cursor" in locals(): cursor.close()
+        if "db" in locals(): db.close()
+
+
+##############################
+@app.post("/reset_password")
+def update_password():
+    try:
+        user_pk = request.form.get("user_pk")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        if not user_pk or not new_password or not confirm_password:
+            raise x.CustomException("All fields are required", 400)
+
+        if new_password != confirm_password:
+            raise x.CustomException("Passwords do not match", 400)
+
+        # Hash the new password
+        hashed_password = generate_password_hash(new_password)
+
+        # Get the current epoch timestamp
+        updated_at = int(time.time())
+
+        # Update the user's password and updated_at in the database
+        db, cursor = x.db()
+        q = """
+            UPDATE users 
+            SET user_password = %s, user_updated_at = %s 
+            WHERE user_pk = %s
+        """
+        cursor.execute(q, (hashed_password, updated_at, user_pk))
+        db.commit()
+
+        print(f"Password updated successfully for user_pk: {user_pk}")  # Debugging
+        return redirect(url_for("view_login", message="Password updated, please login"))
+
+    except Exception as ex:
+        print(f"Error: {ex}")  # Debugging
+        if "db" in locals(): db.rollback()
+        if isinstance(ex, x.CustomException):
+            toast = render_template("___toast.html", message=ex.message)
+            return f"""<template mix-target="#toast" mix-bottom>{toast}</template>""", ex.code
+        return """<template mix-target="#toast" mix-bottom>System error occurred.</template>""", 500
+
+    finally:
+        if "cursor" in locals(): cursor.close()
+        if "db" in locals(): db.close()
+
+
 
 
 ##############################
@@ -295,6 +394,17 @@ def logout():
 ##############################
 
 def _________PUT_________(): pass
+
+##############################
+##############################
+##############################
+
+
+##############################
+##############################
+##############################
+
+def _________BRIDGE_________(): pass
 
 ##############################
 ##############################
@@ -327,4 +437,33 @@ def verify_user(verification_key):
         return "System under maintenance", 500  
     finally:
         if "cursor" in locals(): cursor.close()
-        if "db" in locals(): db.close() 
+        if "db" in locals(): db.close()
+
+##################################
+@app.get("/reset_password/<token>")
+def reset_password(token):
+    try:
+        print(f"Token received: {token}")  # Debugging
+        # Verify the reset token
+        db, cursor = x.db()
+        q = "SELECT user_pk FROM users WHERE user_verification_key = %s AND user_deleted_at = 0"
+        cursor.execute(q, (token,))
+        user = cursor.fetchone()
+
+        print(f"User fetched: {user}")  # Debugging
+
+        if not user:
+            raise x.CustomException("Invalid or expired reset link", 400)
+
+        # Render the reset password form
+        return render_template("view_set_new_password.html", user_pk=user["user_pk"])
+
+    except Exception as ex:
+        print(f"Error: {ex}")  # Debugging
+        if isinstance(ex, x.CustomException):
+            return f"""<template mix-target="#toast" mix-bottom>{ex.message}</template>""", ex.code
+        return """<template mix-target="#toast" mix-bottom>System error occurred.</template>""", 500
+
+    finally:
+        if "cursor" in locals(): cursor.close()
+        if "db" in locals(): db.close()

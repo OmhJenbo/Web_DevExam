@@ -23,6 +23,7 @@
                 <span class="ml-auto text-c-gray:+25">{{ x.USER_PASSWORD_MIN }} to {{ x.USER_PASSWORD_MAX }} chars</span>
             </label>
             <input name="user_password" type="text" mix-check="{{ x.REGEX_USER_PASSWORD }}">
+            <a href="/reset_password">Forgot Password?</a>
         </div>
 
         <button mix-post="/login" mix-data="#frm_user_login">

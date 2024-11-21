@@ -134,3 +134,37 @@ def send_verify_email(user_email, user_verification_key):
         pass
 
 #################################
+def send_reset_email(user_email, reset_token):
+    try:
+        # Sender email and app password
+        sender_email = "sebmp48s@gmail.com"
+        password = "yxxjsgyvkeqayihb"  # App Password for Gmail (with 2FA enabled)
+
+        # Construct the reset URL
+        reset_url = f"http://127.0.0.1/reset_password/{reset_token}"
+
+        # Create the email message
+        message = MIMEMultipart()
+        message["From"] = sender_email
+        message["To"] = user_email
+        message["Subject"] = "Reset Your Password"
+
+        body = f"""
+        <p>To reset your password, click the link below:</p>
+        <p><a href="{reset_url}">{reset_url}</a></p>
+        <p>If you did not request this, please ignore this email.</p>
+        """
+        message.attach(MIMEText(body, "html"))
+
+        # Connect to Gmail's SMTP server and send the email
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()  # Upgrade the connection to secure
+            server.login(sender_email, password)
+            server.sendmail(sender_email, user_email, message.as_string())
+        print("Reset password email sent successfully!")
+
+        return "email sent"
+
+    except Exception as ex:
+        raise x.CustomException("Cannot send email", 500)
+

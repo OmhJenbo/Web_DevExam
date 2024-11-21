@@ -328,7 +328,9 @@ def forgot_password():
         if "cursor" in locals(): cursor.close()
         if "db" in locals(): db.close()
 
-
+#The link is fucked
+#Display message signup succesful please verify your email
+#Display message make pretty email send
 ##############################
 @app.post("/reset_password")
 def update_password():

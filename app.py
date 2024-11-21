@@ -221,37 +221,45 @@ def signup():
 @app.post("/login")
 def login():
     try:
-
         user_email = x.validate_user_email()
         user_password = x.validate_user_password()
 
         db, cursor = x.db()
-        q = """ SELECT * FROM users 
-                JOIN users_roles 
-                ON user_pk = user_role_user_fk 
-                JOIN roles
-                ON role_pk = user_role_role_fk
-                WHERE user_email = %s"""
-        cursor.execute(q, (user_email,))
-        rows = cursor.fetchall()
-        if not rows:
-            toast = render_template("___toast.html", message="user not registered")
-            return f"""<template mix-target="#toast">{toast}</template>""", 400     
-        if not check_password_hash(rows[0]["user_password"], user_password):
-            toast = render_template("___toast.html", message="invalid credentials")
+
+        user_query = """SELECT * FROM users WHERE user_email = %s"""
+        cursor.execute(user_query, (user_email,))
+        user_row = cursor.fetchone()
+
+        if not user_row:
+            toast = render_template("___toast.html", message="User not registered")
+            return f"""<template mix-target="#toast">{toast}</template>""", 400
+        
+        if user_row["user_verified_at"] == 0:
+            toast = render_template("___toast.html", message="User not verified")
+            return f"""<template mix-target="#toast">{toast}</template>""", 403
+
+        if not check_password_hash(user_row["user_password"], user_password):
+            toast = render_template("___toast.html", message="Invalid credentials")
             return f"""<template mix-target="#toast">{toast}</template>""", 401
-        roles = []
-        for row in rows:
-            roles.append(row["role_name"])
+
+        role_query = """SELECT * FROM users_roles 
+                        JOIN roles ON role_pk = user_role_role_fk
+                        WHERE user_role_user_fk = %s"""
+        cursor.execute(role_query, (user_row["user_pk"],))
+        role_rows = cursor.fetchall()
+
+        roles = [row["role_name"] for row in role_rows]
+
         user = {
-            "user_pk": rows[0]["user_pk"],
-            "user_name": rows[0]["user_name"],
-            "user_last_name": rows[0]["user_last_name"],
-            "user_email": rows[0]["user_email"],
+            "user_pk": user_row["user_pk"],
+            "user_name": user_row["user_name"],
+            "user_last_name": user_row["user_last_name"],
+            "user_email": user_row["user_email"],
             "roles": roles
         }
         ic(user)
         session["user"] = user
+        
         if len(roles) == 1:
             return f"""<template mix-redirect="/{roles[0]}"></template>"""
         return f"""<template mix-redirect="/choose-role"></template>"""
@@ -263,11 +271,12 @@ def login():
             return f"""<template mix-target="#toast" mix-bottom>{toast}</template>""", ex.code    
         if isinstance(ex, x.mysql.connector.Error):
             ic(ex)
-            return "<template>System upgrating</template>", 500        
+            return "<template>System upgrading</template>", 500        
         return "<template>System under maintenance</template>", 500  
     finally:
         if "cursor" in locals(): cursor.close()
         if "db" in locals(): db.close()
+
 
 ##############################
 @app.post("/logout")

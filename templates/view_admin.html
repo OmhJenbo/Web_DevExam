@@ -1,7 +1,50 @@
-
-
-    {% include "_top_logged.html" %}
-
-    Admin
-</body>
-</html>
+{% include "_top_logged.html" %}
+{% include "_top.html" %}
+<main class="container py-8 mx-auto h-full pt-20">
+    <div class="rounded-sm overflow-hidden" style="display: flex; justify-content: center;">
+        <div style="width: 80%;">
+            <h1 class="text-3xl font-bold text-c-charocoal:+3">View all users:</h1>
+            <table class="table-auto w-full border-collapse border border-gray-400">
+                <thead class="bg-c-charocoal:+3 text-c-body border-b-2 border-c-charocoal:+5">
+                    <tr>
+                        <th class="px-4 py-2">First name</th>
+                        <th class="px-4 py-2">Last Name</th>
+                        <th class="px-4 py-2">Email</th>
+                        <th class="px-4 py-2">Status</th>
+                        <th class="px-4 py-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="{% if loop.index is odd %}bg-c-charocoal:-9{% else %}bg-c-charocoal:-5{% endif %}">
+                        <td class="border px-4 py-2 text-c-white:-2">{{ user["user_name"] }}</td>
+                        <td class="border px-4 py-2 text-c-white:-2"> {{ user["user_last_name"] }}</td>
+                        <td class="border px-4 py-2 text-c-white:-2">{{ user["user_email"] }}</td>
+                        <td class="border px-4 py-2 text-c-white:-2">
+                            {% if user["user_blocked_at"] == "0" %}
+                            Active
+                            {% else %}
+                            Blocked
+                            {% endif %}
+                        </td>
+                        <td class="border px-4 py-2">
+                            <div class="flex items-center space-x-2">
+                                {% if user["user_blocked_at"] == 0 %}
+                                    {% include "___btn_block_user.html" %}
+                                {% else %}
+                                    {% include "___btn_unblock_user.html" %}
+                                {% endif %}
+                                <button
+                                    class="bg-none text-c-body px-3 py-1 rounded-sm h-10 w-10 cursor-pointer"
+                                    title="Delete User" 
+                                    mix-get="/users/delete/{{user['user_pk']}}">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+{% include "_bottom.html" %}

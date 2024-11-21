@@ -87,12 +87,31 @@ def view_partner():
 @app.get("/admin")
 @x.no_cache
 def view_admin():
-    if not session.get("user", ""): 
+    if not session.get("user", ""):
         return redirect(url_for("view_login"))
     user = session.get("user")
-    if not "admin" in user.get("roles", ""):
+    if "admin" not in user.get("roles", ""):
         return redirect(url_for("view_login"))
-    return render_template("view_admin.html")
+    
+    # Fetch all users from the database
+    connection, cursor = x.db()  # Ensure this unpacks correctly
+    q = '''
+    SELECT 
+        user_pk, 
+        user_name, 
+        user_last_name, 
+        user_email, 
+        user_created_at, 
+        user_deleted_at, 
+        user_blocked_at, 
+        user_updated_at, 
+        user_verified_at, 
+        user_verification_key
+    FROM users
+    '''
+    cursor.execute(q)
+    users = cursor.fetchall()
+    return render_template("view_admin.html", user=user, users=users)
 
 ##############################
 @app.get("/restaurant")
@@ -154,7 +173,7 @@ def _________POST_________(): pass
 ##############################
 ##############################
 
-@app.post("/users")
+@app.post("/signup")
 @x.no_cache
 def signup():
     try:
@@ -167,7 +186,8 @@ def signup():
 
         role_mapping = {
             "customer": "83a69f25-a755-11ef-a5b9-0242ac120002",
-            "restaurant": "83a6a87e-a755-11ef-a5b9-0242ac120002"
+            "restaurant": "83a6a87e-a755-11ef-a5b9-0242ac120002",
+            "admin": "83a67f24-a755-11ef-a5b9-0242ac120002"
         }
 
         if user_role not in role_mapping:

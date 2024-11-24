@@ -207,8 +207,9 @@ def signup():
         
         x.send_verify_email(user_email, user_verification_key)
         db.commit()
-    
-        return """<template mix-redirect="/login"></template>""", 201
+
+        print(f"User created for user_pk: {user_pk}") 
+        return redirect(url_for("view_login", message="Account created, please verify your email to login")), 201
     
     except Exception as ex:
         ic(ex)
@@ -244,7 +245,11 @@ def login():
         if not user_row:
             toast = render_template("___toast.html", message="User not registered")
             return f"""<template mix-target="#toast">{toast}</template>""", 400
-        
+
+        if user_row["user_deleted_at"] != 0:
+            toast = render_template("___toast.html", message="Account has been deleted")
+            return f"""<template mix-target="#toast">{toast}</template>""", 403
+
         if user_row["user_verified_at"] == 0:
             toast = render_template("___toast.html", message="User not verified")
             return f"""<template mix-target="#toast">{toast}</template>""", 403
@@ -270,23 +275,24 @@ def login():
         }
         ic(user)
         session["user"] = user
-        
+
         if len(roles) == 1:
             return f"""<template mix-redirect="/{roles[0]}"></template>"""
         return f"""<template mix-redirect="/choose-role"></template>"""
     except Exception as ex:
         ic(ex)
         if "db" in locals(): db.rollback()
-        if isinstance(ex, x.CustomException): 
+        if isinstance(ex, x.CustomException):
             toast = render_template("___toast.html", message=ex.message)
-            return f"""<template mix-target="#toast" mix-bottom>{toast}</template>""", ex.code    
+            return f"""<template mix-target="#toast">{toast}</template>""", ex.code
         if isinstance(ex, x.mysql.connector.Error):
             ic(ex)
-            return "<template>System upgrading</template>", 500        
-        return "<template>System under maintenance</template>", 500  
+            return "<template>System upgrading</template>", 500
+        return "<template>System under maintenance</template>", 500
     finally:
         if "cursor" in locals(): cursor.close()
         if "db" in locals(): db.close()
+
 ##############################
 @app.post("/forgot-password")
 def forgot_password():
@@ -371,6 +377,44 @@ def update_password():
             toast = render_template("___toast.html", message=ex.message)
             return f"""<template mix-target="#toast" mix-bottom>{toast}</template>""", ex.code
         return """<template mix-target="#toast" mix-bottom>System error occurred.</template>""", 500
+
+    finally:
+        if "cursor" in locals(): cursor.close()
+        if "db" in locals(): db.close()
+
+##############################
+@app.post("/delete-user")
+def delete_user():
+    try:
+        user_pk = session.get("user", {}).get("user_pk")
+        if not user_pk:
+            raise x.CustomException("User not logged in", 403)
+
+        deleted_at = int(time.time())
+
+        db, cursor = x.db()
+        q = """
+            UPDATE users 
+            SET user_deleted_at = %s 
+            WHERE user_pk = %s
+        """
+        cursor.execute(q, (deleted_at, user_pk))
+        db.commit()
+
+        print(f"User soft-deleted successfully for user_pk: {user_pk}") 
+
+        session.clear()
+
+        print(f"User succesfully deleted for user_pk: {user_pk}") 
+        return redirect(url_for("view_login", message="User succesfully deleted"))
+
+    except Exception as ex:
+        print(f"Error: {ex}")  # Debugging
+        if "db" in locals(): db.rollback()
+        if isinstance(ex, x.CustomException):
+            toast = render_template("___toast.html", message=ex.message)
+            return f"""<template mix-target="#toast">{toast}</template>""", ex.code
+        return """<template mix-target="#toast">System error occurred.</template>""", 500
 
     finally:
         if "cursor" in locals(): cursor.close()

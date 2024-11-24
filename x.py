@@ -149,9 +149,10 @@ def send_reset_email(user_email, reset_token):
         message["To"] = user_email
         message["Subject"] = "Reset Your Password"
 
+        # Format the email body similarly to verify_email
         body = f"""
-        <p>To reset your password, click the link below:</p>
-        <p><a href="{reset_url}">{reset_url}</a></p>
+        <p>To reset your password, please click the link below:</p>
+        <p><a href="{reset_url}">Reset Your Password</a></p>
         <p>If you did not request this, please ignore this email.</p>
         """
         message.attach(MIMEText(body, "html"))
@@ -166,5 +167,6 @@ def send_reset_email(user_email, reset_token):
         return "email sent"
 
     except Exception as ex:
-        raise x.CustomException("Cannot send email", 500)
+        raise CustomException("Cannot send email", 500)
+
 
